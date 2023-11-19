@@ -3,15 +3,19 @@ CFLAGS=-Wall
 DEBUGGER=gdb
 
 all:
-	$(CC) $(CFLAGS) banker.c
+	$(CC) $(CFLAGS) -o banker banker.c
 
 run:
-	./a.out
+	./banker
 
 clean:
-	rm -f a.out *.o
+	rm -f banker *.o
+	rm -f result.txt
 
 debug:
-	$(DEBUGGER) ./a.out
+	$(DEBUGGER) ./banker
 
-.PHONY: all run clean debug
+diff:
+	diff result.txt expected.txt
+
+.PHONY: all run clean debug diff
