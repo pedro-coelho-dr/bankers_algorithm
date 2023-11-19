@@ -1,20 +1,17 @@
 CC=gcc
 CFLAGS=-Wall
 DEBUGGER=gdb
-TARGET=banker
 
-all: $(TARGET)
+all:
+	$(CC) $(CFLAGS) banker.c
 
-$(TARGET): banker.c
-	$(CC) $(CFLAGS) -o $(TARGET) banker.c
-
-run: $(TARGET)
-	./$(TARGET)
+run:
+	./a.out
 
 clean:
-	rm -f $(TARGET) *.o
+	rm -f a.out *.o
 
-debug: $(TARGET)
-	$(DEBUGGER) ./$(TARGET)
+debug:
+	$(DEBUGGER) ./a.out
 
 .PHONY: all run clean debug
