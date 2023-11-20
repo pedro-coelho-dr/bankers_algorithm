@@ -87,13 +87,13 @@ int main(int argc, char *argv[]) {
         }
         int numTokens = sscanf(commandLine, "%s %d", command, &customer_num);
         if (numTokens < 2 || (strcmp(command, "RQ") != 0 && strcmp(command, "RL") != 0)) {
-            fprintf(stderr, "Incompatibility between commands.txt and command lineA\n");
+            fprintf(stderr, "Incompatibility between commands.txt and command line\n");
             fclose(cmdFile);
             return 1;
         }
 
         if (customer_num<0 || customer_num>=NUMBER_OF_CUSTOMERS) {
-            fprintf(stderr, "Incompatibility between commands.txt and command lineB\n");
+            fprintf(stderr, "Incompatibility between commands.txt and command line\n");
             fclose(cmdFile);
             return 1;
         }
@@ -113,12 +113,12 @@ int main(int argc, char *argv[]) {
             }
 
             if (i != NUMBER_OF_RESOURCES) {
-                fprintf(stderr, "Incompatibility between commands.txt and command lineC\n");
+                fprintf(stderr, "Incompatibility between commands.txt and command line\n");
                 fclose(cmdFile);
                 return 1;
             }
             if (lastToken != NULL) {
-                fprintf(stderr, "Incompatibility between commands.txt and command lineD\n");
+                fprintf(stderr, "Incompatibility between commands.txt and command line\n");
                 fclose(cmdFile);
                 return 1;
             }
@@ -323,17 +323,49 @@ void release_resources(int customer_num, int release[], FILE *fptr) {
     fprintf(fptr, "\n");
 }
 
-/* void print_state(FILE *fptr) {
-    fprintf(fptr, "MAXIMUM | ALLOCATION | NEED\n");
+void print_state(FILE *fptr) {
+
+    fprintf(fptr, "MAXIMUM ");
+    if (NUMBER_OF_RESOURCES>4){
+        for (int k=5;k<=NUMBER_OF_RESOURCES;k++){
+            fprintf(fptr, "  ");
+        }
+    }
+    fprintf(fptr, "| ALLOCATION ");
+
+    if (NUMBER_OF_RESOURCES>=6){
+        fprintf(fptr, " ");
+    }
+    if (NUMBER_OF_RESOURCES>6){
+        for (int k=7;k<=NUMBER_OF_RESOURCES;k++){
+            fprintf(fptr, "  ");
+        }
+    }
+    fprintf(fptr, "| NEED\n");
     for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
         for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
             fprintf(fptr, "%d ", maximum[i][j]);
         }
-        fprintf(fptr, "  | "); // Three spaces before the '|'
+        for (int k=1;k<=3;k++){
+            if(NUMBER_OF_RESOURCES<=k){
+                fprintf(fptr, "  ");
+            }
+        }
+        fprintf(fptr, "| ");
         for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
             fprintf(fptr, "%d ", allocation[i][j]);
         }
-        fprintf(fptr, "     | "); // Six spaces before the '|', reduced by one from previous version
+
+        for (int k=1;k<=4;k++){
+            if(NUMBER_OF_RESOURCES<=k){
+                fprintf(fptr, "  ");
+            }
+        }
+        if(NUMBER_OF_RESOURCES<=4){
+            fprintf(fptr, " ");
+        }
+        fprintf(fptr, "| ");
+
         for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
             fprintf(fptr, "%d ", need[i][j]);
         }
@@ -344,46 +376,4 @@ void release_resources(int customer_num, int release[], FILE *fptr) {
         fprintf(fptr, "%d ", available[i]);
     }
     fprintf(fptr, "\n");
-} */
-/* 
-void print_state(FILE *fptr) {
-    const int nameLengths[3] = { strlen("MAXIMUM"), strlen("ALLOCATION"), strlen("NEED") };
-    const int resourceSpacing = NUMBER_OF_RESOURCES * 2 - 1;
-
-    int columnWidths[3] = {
-        resourceSpacing > nameLengths[0] ? resourceSpacing : nameLengths[0],
-        resourceSpacing > nameLengths[1] ? resourceSpacing : nameLengths[1],
-        resourceSpacing
-    };
-
-
-    fprintf(fptr, "%-*s | %-*s | %s\n", columnWidths[0], "MAXIMUM", columnWidths[1], "ALLOCATION", "NEED");
-
-  
-    for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
-        for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
-            fprintf(fptr, "%d", maximum[i][j]);
-            if (j < NUMBER_OF_RESOURCES - 1) fprintf(fptr, " "); 
-        }
-        fprintf(fptr, "%*s", columnWidths[0] - resourceSpacing + 1, "| "); 
-
-        for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
-            fprintf(fptr, "%d", allocation[i][j]);
-            if (j < NUMBER_OF_RESOURCES - 1) fprintf(fptr, " ");
-        }
-        fprintf(fptr, "%*s", columnWidths[1] - resourceSpacing + 1, "| ");
-
-        for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
-            fprintf(fptr, "%d", need[i][j]);
-            if (j < NUMBER_OF_RESOURCES - 1) fprintf(fptr, " ");
-        }
-        fprintf(fptr, "\n");
-    }
-
-    // Print AVAILABLE resources
-    fprintf(fptr, "AVAILABLE ");
-    for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
-        fprintf(fptr, "%d ", available[i]);
-    }
-    fprintf(fptr, "\n");
-} */
+}
