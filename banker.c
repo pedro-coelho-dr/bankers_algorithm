@@ -25,6 +25,9 @@ bool is_safe(int available[],
             int allocation[][NUMBER_OF_RESOURCES], 
             int need[][NUMBER_OF_RESOURCES]);
 
+void max_digits(int matrix[][NUMBER_OF_RESOURCES], 
+                int max_digits_por_col[]);
+
 void print_state(FILE *fptr, 
                     int available[], 
                     int allocation[][NUMBER_OF_RESOURCES], 
