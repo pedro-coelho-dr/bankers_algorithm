@@ -35,6 +35,12 @@ void print_state(FILE *fptr,
 int main(int argc, char *argv[]) {
     NUMBER_OF_RESOURCES = argc - 1;
 
+    FILE *cmdFile = fopen("commands.txt", "r");
+    if (cmdFile == NULL) {
+        fprintf(stderr, "Fail to read commands.txt\n");
+        return 1;
+    }
+
     // count customer
     FILE *customerFile = fopen("customer.txt", "r");
     if (customerFile == NULL) {
@@ -69,13 +75,15 @@ int main(int argc, char *argv[]) {
     int customerCount = 0;
     while (fgets(line, sizeof(line), file) && customerCount < NUMBER_OF_CUSTOMERS) {
         char *token = strtok(line, ",");
-        int resourceCount = 0; 
-        while (token != NULL && resourceCount < NUMBER_OF_RESOURCES) {
-            maximum[customerCount][resourceCount] = atoi(token);
+        int resourceCount=0; 
+        while (token!=NULL) {
+            if (resourceCount<NUMBER_OF_RESOURCES) {
+                maximum[customerCount][resourceCount] = atoi(token);
+            }
             token = strtok(NULL, ",");
             resourceCount++;
         }
-        if (resourceCount != NUMBER_OF_RESOURCES) {
+        if (resourceCount!=NUMBER_OF_RESOURCES) {
             fprintf(stderr, "Incompatibility between customer.txt and command line\n");
             fclose(file);
             return 1;
@@ -93,11 +101,7 @@ int main(int argc, char *argv[]) {
     }
 
     // validate commands.txt
-    FILE *cmdFile = fopen("commands.txt", "r");
-    if (cmdFile == NULL) {
-        fprintf(stderr, "Fail to read commands.txt\n");
-        return 1;
-    }
+
 
     char commandLine[2000];
     char command[10];
@@ -360,7 +364,7 @@ void max_digits(int matrix[][NUMBER_OF_RESOURCES], int max_digits_por_col[]) {
     for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
         max_digits_por_col[j] = 0;
         for (int i=0;i<NUMBER_OF_CUSTOMERS; i++) {
-            int digits = matrix[i][j] > 0 ? (int)log10(matrix[i][j]) + 1 : 1; // funcionando, opcoes: /10 sucessivamente ou transformar em string
+            int digits = matrix[i][j] > 0 ? (int)log10(matrix[i][j]) + 1 : 1; // funcionando -- opcoes: /10 suc. ou transformar em string
             if (digits > max_digits_por_col[j]) {
                 max_digits_por_col[j] = digits;
             }
@@ -374,6 +378,7 @@ void print_state(FILE *fptr,
                  int need[][NUMBER_OF_RESOURCES], 
                  int maximum[][NUMBER_OF_RESOURCES]) {
 
+    // max digits per column
     int max_digits_maximum[NUMBER_OF_RESOURCES];
     int max_digits_allocation[NUMBER_OF_RESOURCES];
     int max_digits_need[NUMBER_OF_RESOURCES];
