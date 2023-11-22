@@ -2,62 +2,85 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-
-#define MAX_NUMBER_OF_CUSTOMERS 1000
-#define MAX_NUMBER_OF_RESOURCES 1000
-
-int available[MAX_NUMBER_OF_RESOURCES]; 
-int maximum[MAX_NUMBER_OF_CUSTOMERS][MAX_NUMBER_OF_RESOURCES]; 
-int allocation[MAX_NUMBER_OF_CUSTOMERS][MAX_NUMBER_OF_RESOURCES]; 
-int need[MAX_NUMBER_OF_CUSTOMERS][MAX_NUMBER_OF_RESOURCES]; 
+#include <math.h>
 
 int NUMBER_OF_CUSTOMERS = 0;
 int NUMBER_OF_RESOURCES = 0;
 
-int request_resources(int customer_num, int request[], FILE *fptr);
-void release_resources(int customer_num, int release[], FILE *fptr);
-bool is_safe();
-void print_state(FILE *fptr);
+int request_resources(int customer_num, 
+                        int request[], 
+                        FILE *fptr, 
+                        int available[], 
+                        int allocation[][NUMBER_OF_RESOURCES], 
+                        int need[][NUMBER_OF_RESOURCES]);
+
+void release_resources(int customer_num, 
+                        int release[], 
+                        FILE *fptr, 
+                        int available[], 
+                        int allocation[][NUMBER_OF_RESOURCES], 
+                        int need[][NUMBER_OF_RESOURCES]);
+
+bool is_safe(int available[], 
+            int allocation[][NUMBER_OF_RESOURCES], 
+            int need[][NUMBER_OF_RESOURCES]);
+
+void print_state(FILE *fptr, 
+                    int available[], 
+                    int allocation[][NUMBER_OF_RESOURCES], 
+                    int need[][NUMBER_OF_RESOURCES], 
+                    int maximum[][NUMBER_OF_RESOURCES]);
+
 
 int main(int argc, char *argv[]) {
     NUMBER_OF_RESOURCES = argc - 1;
 
-    if (NUMBER_OF_RESOURCES > MAX_NUMBER_OF_RESOURCES) {
-        fprintf(stderr, ":(\n");
+    // count customer
+    FILE *customerFile = fopen("customer.txt", "r");
+    if (customerFile == NULL) {
+        fprintf(stderr, "Fail to read customer.txt\n");
         return 1;
     }
+    char line2[2000];
+    while (fgets(line2, sizeof(line2), customerFile)) {
+        NUMBER_OF_CUSTOMERS++;
+    }
+    fclose(customerFile);
+
+    // matrices
+    int available[NUMBER_OF_RESOURCES]; 
+    int maximum[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES]; 
+    int allocation[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES]; 
+    int need[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES]; 
 
     // available array
     for (int i=1; i<=NUMBER_OF_RESOURCES; i++) {
-        available[i - 1] = atoi(argv[i]);
+        available[i-1] = atoi(argv[i]);
     }
 
     // read customer.txt
-    FILE *file = fopen("customer.txt", "r");
-    if (file == NULL) {
+    FILE *file=fopen("customer.txt", "r");
+    if (file==NULL) {
         fprintf(stderr, "Fail to read customer.txt\n");
         return 1;
     }
 
-    char line[100];
-    while (fgets(line, sizeof(line), file)) {
+    char line[2000];
+    int customerCount = 0;
+    while (fgets(line, sizeof(line), file) && customerCount < NUMBER_OF_CUSTOMERS) {
         char *token = strtok(line, ",");
-        int resourceCount = 0;
-        while (token != NULL) {
-            if (resourceCount >= NUMBER_OF_RESOURCES) {
-                fprintf(stderr, "Incompatibility between customer.txt and command line\n");
-                fclose(file);
-                return 1;
-            }
-            maximum[NUMBER_OF_CUSTOMERS][resourceCount++] = atoi(token);
+        int resourceCount = 0; 
+        while (token != NULL && resourceCount < NUMBER_OF_RESOURCES) {
+            maximum[customerCount][resourceCount] = atoi(token);
             token = strtok(NULL, ",");
+            resourceCount++;
         }
         if (resourceCount != NUMBER_OF_RESOURCES) {
             fprintf(stderr, "Incompatibility between customer.txt and command line\n");
             fclose(file);
             return 1;
         }
-        NUMBER_OF_CUSTOMERS++;
+        customerCount++;
     }
     fclose(file);
 
@@ -76,9 +99,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char commandLine[1000];
+    char commandLine[2000];
     char command[10];
-    int customer_num, resources[MAX_NUMBER_OF_RESOURCES];
+    int customer_num, resources[NUMBER_OF_RESOURCES];
 
     while (fgets(commandLine, sizeof(commandLine), cmdFile)) {
 
@@ -153,22 +176,20 @@ int main(int argc, char *argv[]) {
             while ((token = strtok(NULL, " ")) != NULL && i < NUMBER_OF_RESOURCES) {
                 resources[i++] = atoi(token);
             }
-
-            if (i != NUMBER_OF_RESOURCES) {
+            if (i!=NUMBER_OF_RESOURCES) {
                 fprintf(stderr, "Incompatibility between commands.txt and command line\n");
                 fclose(cmdFile);
                 fclose(resultFile);
                 remove("result.txt"); 
                 return 1;
             }
-
             if (strcmp(command, "RQ") == 0) {
-                request_resources(customer_num, resources, resultFile);
+                request_resources(customer_num, resources, resultFile, available, allocation, need);
             } else if (strcmp(command, "RL") == 0) {
-                release_resources(customer_num, resources, resultFile);
+                release_resources(customer_num, resources, resultFile, available, allocation, need);
             }
         } else if (strcmp(command, "*") == 0) {
-            print_state(resultFile);
+            print_state(resultFile, available, allocation, need, maximum);
         } else {
             fprintf(stderr, "[ERROR] invalid command\n");
             fclose(cmdFile);
@@ -176,14 +197,16 @@ int main(int argc, char *argv[]) {
             remove("result.txt");
             return 1;
         }
+    }
+    fclose(cmdFile);
+    fclose(resultFile);
+    return 0;
 }
 
-fclose(cmdFile);
-fclose(resultFile);
-return 0;
-}
+bool is_safe(int available[], 
+                int allocation[][NUMBER_OF_RESOURCES], 
+                int need[][NUMBER_OF_RESOURCES]) {
 
-bool is_safe() {
     // work && finish
     int work[NUMBER_OF_RESOURCES];
     bool finish[NUMBER_OF_CUSTOMERS];
@@ -203,12 +226,11 @@ bool is_safe() {
             if (!finish[i]) {
                 bool allocate = true;
                 for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
-                    if (need[i][j] > work[j]) {
+                    if (need[i][j]>work[j]) {
                         allocate = false;
                         break;
                     }
                 }
-
                 if (allocate) {
                     for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
                         work[j] += allocation[i][j];
@@ -234,7 +256,13 @@ bool is_safe() {
 
 
 
-int request_resources(int customer_num, int request[], FILE *fptr) {
+int request_resources(int customer_num, 
+                        int request[], 
+                        FILE *fptr, 
+                        int available[], 
+                        int allocation[][NUMBER_OF_RESOURCES], 
+                        int need[][NUMBER_OF_RESOURCES]) {
+
     // request <= need
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
         if (request[i] > need[customer_num][i]) {
@@ -271,7 +299,7 @@ int request_resources(int customer_num, int request[], FILE *fptr) {
     }
 
     // state is safe?
-    if (is_safe()) {
+    if (is_safe(available, allocation, need)) {
         // safe
         fprintf(fptr, "Allocate to customer %d the resources ", customer_num);
         for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
@@ -296,7 +324,12 @@ int request_resources(int customer_num, int request[], FILE *fptr) {
     }
 }
 
-void release_resources(int customer_num, int release[], FILE *fptr) {
+void release_resources(int customer_num, 
+                        int release[], 
+                        FILE *fptr, 
+                        int available[], 
+                        int allocation[][NUMBER_OF_RESOURCES], 
+                        int need[][NUMBER_OF_RESOURCES]) {
     // release <= allocation
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
         if (release[i] > allocation[customer_num][i]) {
@@ -323,56 +356,84 @@ void release_resources(int customer_num, int release[], FILE *fptr) {
     fprintf(fptr, "\n");
 }
 
-void print_state(FILE *fptr) {
-
-    fprintf(fptr, "MAXIMUM ");
-    if (NUMBER_OF_RESOURCES>4){
-        for (int k=5;k<=NUMBER_OF_RESOURCES;k++){
-            fprintf(fptr, "  ");
-        }
-    }
-    fprintf(fptr, "| ALLOCATION ");
-
-    if (NUMBER_OF_RESOURCES>=6){
-        fprintf(fptr, " ");
-    }
-    if (NUMBER_OF_RESOURCES>6){
-        for (int k=7;k<=NUMBER_OF_RESOURCES;k++){
-            fprintf(fptr, "  ");
-        }
-    }
-    fprintf(fptr, "| NEED\n");
-    for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
-        for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
-            fprintf(fptr, "%d ", maximum[i][j]);
-        }
-        for (int k=1;k<=3;k++){
-            if(NUMBER_OF_RESOURCES<=k){
-                fprintf(fptr, "  ");
+void max_digits(int matrix[][NUMBER_OF_RESOURCES], int max_digits_por_col[]) {
+    for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
+        max_digits_por_col[j] = 0;
+        for (int i=0;i<NUMBER_OF_CUSTOMERS; i++) {
+            int digits = matrix[i][j] > 0 ? (int)log10(matrix[i][j]) + 1 : 1;
+            if (digits > max_digits_por_col[j]) {
+                max_digits_por_col[j] = digits;
             }
         }
-        fprintf(fptr, "| ");
-        for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
-            fprintf(fptr, "%d ", allocation[i][j]);
-        }
+    }
+}
 
-        for (int k=1;k<=4;k++){
-            if(NUMBER_OF_RESOURCES<=k){
-                fprintf(fptr, "  ");
-            }
+void print_state(FILE *fptr, 
+                 int available[], 
+                 int allocation[][NUMBER_OF_RESOURCES], 
+                 int need[][NUMBER_OF_RESOURCES], 
+                 int maximum[][NUMBER_OF_RESOURCES]) {
+
+    int max_digits_maximum[NUMBER_OF_RESOURCES];
+    int max_digits_allocation[NUMBER_OF_RESOURCES];
+    int max_digits_need[NUMBER_OF_RESOURCES];
+
+    max_digits(maximum, max_digits_maximum);
+    max_digits(allocation, max_digits_allocation);
+    max_digits(need, max_digits_need);
+
+    //headers
+
+    int total_spaces_maximum = 0, total_spaces_allocation = 0;
+    for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
+        total_spaces_maximum += max_digits_maximum[i] + 1;
+        total_spaces_allocation += max_digits_allocation[i] + 1;
+    }
+    total_spaces_maximum--;
+    total_spaces_allocation--;
+
+    int adj_total_spaces_maximum = (total_spaces_maximum > strlen("MAXIMUM") ? total_spaces_maximum : strlen("MAXIMUM")) + 1;
+    int adj_total_spaces_allocation = (total_spaces_allocation > strlen("ALLOCATION") ? total_spaces_allocation : strlen("ALLOCATION")) + 1;
+
+    fprintf(fptr, "MAXIMUM");
+    for (int i = strlen("MAXIMUM"); i < total_spaces_maximum; i++) fprintf(fptr, " ");
+    fprintf(fptr, " | ");
+
+    fprintf(fptr, "ALLOCATION");
+    for (int i = strlen("ALLOCATION"); i < total_spaces_allocation; i++) fprintf(fptr, " ");
+    fprintf(fptr, " | NEED\n");
+
+    //matrices
+
+    for (int i=0; i<NUMBER_OF_CUSTOMERS; i++) {
+        // maximum
+        int current_space = 0;
+        for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
+            fprintf(fptr, "%*d ", max_digits_maximum[j], maximum[i][j]);
+            current_space += max_digits_maximum[j] + 1;
         }
-        if(NUMBER_OF_RESOURCES<=4){
-            fprintf(fptr, " ");
-        }
+        for (int j=current_space; j<adj_total_spaces_maximum; j++) fprintf(fptr, " ");
         fprintf(fptr, "| ");
 
-        for (int j = 0; j < NUMBER_OF_RESOURCES; j++) {
-            fprintf(fptr, "%d ", need[i][j]);
+        // allocation
+        current_space = 0;
+        for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
+            fprintf(fptr, "%*d ", max_digits_allocation[j], allocation[i][j]);
+            current_space += max_digits_allocation[j] + 1;
+        }
+        for (int j = current_space; j<adj_total_spaces_allocation; j++) fprintf(fptr, " ");
+        fprintf(fptr, "| ");
+
+        // need
+        for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
+            fprintf(fptr, "%*d ", max_digits_need[j], need[i][j]);
         }
         fprintf(fptr, "\n");
     }
+
+    // available footer
     fprintf(fptr, "AVAILABLE ");
-    for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
+    for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
         fprintf(fptr, "%d ", available[i]);
     }
     fprintf(fptr, "\n");

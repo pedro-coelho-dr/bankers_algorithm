@@ -3,7 +3,7 @@ CFLAGS=-Wall
 DEBUGGER=gdb
 
 all:
-	$(CC) $(CFLAGS) -o banker banker.c
+	$(CC) $(CFLAGS) -o banker banker.c -lm
 
 run:
 	./banker
