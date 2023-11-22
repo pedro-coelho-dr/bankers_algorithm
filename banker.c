@@ -360,7 +360,7 @@ void max_digits(int matrix[][NUMBER_OF_RESOURCES], int max_digits_por_col[]) {
     for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
         max_digits_por_col[j] = 0;
         for (int i=0;i<NUMBER_OF_CUSTOMERS; i++) {
-            int digits = matrix[i][j] > 0 ? (int)log10(matrix[i][j]) + 1 : 1;
+            int digits = matrix[i][j] > 0 ? (int)log10(matrix[i][j]) + 1 : 1; // funcionando, opcoes: /10 sucessivamente ou transformar em string
             if (digits > max_digits_por_col[j]) {
                 max_digits_por_col[j] = digits;
             }
@@ -392,36 +392,36 @@ void print_state(FILE *fptr,
     total_spaces_maximum--;
     total_spaces_allocation--;
 
-    int adj_total_spaces_maximum = (total_spaces_maximum > strlen("MAXIMUM") ? total_spaces_maximum : strlen("MAXIMUM")) + 1;
-    int adj_total_spaces_allocation = (total_spaces_allocation > strlen("ALLOCATION") ? total_spaces_allocation : strlen("ALLOCATION")) + 1;
+    int adj_total_spaces_maximum = (total_spaces_maximum > strlen("MAXIMUM") ? total_spaces_maximum : strlen("MAXIMUM"))+1;
+    int adj_total_spaces_allocation = (total_spaces_allocation > strlen("ALLOCATION") ? total_spaces_allocation : strlen("ALLOCATION"))+1;
 
     fprintf(fptr, "MAXIMUM");
-    for (int i = strlen("MAXIMUM"); i < total_spaces_maximum; i++) fprintf(fptr, " ");
+    for (int i=strlen("MAXIMUM"); i<total_spaces_maximum; i++) fprintf(fptr, " ");
     fprintf(fptr, " | ");
 
     fprintf(fptr, "ALLOCATION");
-    for (int i = strlen("ALLOCATION"); i < total_spaces_allocation; i++) fprintf(fptr, " ");
+    for (int i=strlen("ALLOCATION"); i<total_spaces_allocation; i++) fprintf(fptr, " ");
     fprintf(fptr, " | NEED\n");
 
     //matrices
 
     for (int i=0; i<NUMBER_OF_CUSTOMERS; i++) {
         // maximum
-        int current_space = 0;
+        int current_spaces = 0;
         for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
             fprintf(fptr, "%*d ", max_digits_maximum[j], maximum[i][j]);
-            current_space += max_digits_maximum[j] + 1;
+            current_spaces += max_digits_maximum[j] + 1;
         }
-        for (int j=current_space; j<adj_total_spaces_maximum; j++) fprintf(fptr, " ");
+        for (int j=current_spaces; j<adj_total_spaces_maximum; j++) fprintf(fptr, " ");
         fprintf(fptr, "| ");
 
         // allocation
-        current_space = 0;
-        for (int j=0; j<NUMBER_OF_RESOURCES; j++) {
+        current_spaces = 0;
+        for (int j= 0; j<NUMBER_OF_RESOURCES; j++) {
             fprintf(fptr, "%*d ", max_digits_allocation[j], allocation[i][j]);
-            current_space += max_digits_allocation[j] + 1;
+            current_spaces += max_digits_allocation[j] + 1;
         }
-        for (int j = current_space; j<adj_total_spaces_allocation; j++) fprintf(fptr, " ");
+        for (int j = current_spaces; j<adj_total_spaces_allocation; j++) fprintf(fptr, " ");
         fprintf(fptr, "| ");
 
         // need
